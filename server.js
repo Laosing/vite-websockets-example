@@ -31,19 +31,28 @@ app.use("*", async (req, res, next) => {
   }
 })
 
+const store = {}
+
 const io = new WebsocketServer(server)
 io.on("connection", (socket) => {
-  console.log({ socket })
   const { name } = socket.handshake.auth
   const { room } = socket.handshake.query
   console.log(`${name} connected room: ${room}!`)
 
-  socket.emit("hello", "world")
-  socket.on("hello", (arg) => {
-    console.log(arg) // world
+  socket.join(room)
+
+  // init room storage
+  store[room] = store[room] || []
+  const roomData = store[room]
+
+  io.to(room).emit("getChat", roomData)
+
+  socket.on("addChat", (value) => {
+    roomData.push({ id: Math.random(), name, value })
+    io.to(room).emit("getChat", roomData)
   })
   socket.on("disconnect", () => {
-    console.log("disconnecting!")
+    console.log(`${name} disconnecting from room ${room}`)
   })
 })
 
