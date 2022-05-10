@@ -1,60 +1,63 @@
 import React, { useEffect, useState } from "react"
-import logo from "./logo.svg"
 import "./App.css"
 import { io } from "socket.io-client"
 
-const name = window.prompt() || "anonymous"
+const name = "drew" || window.prompt() || "anonymous"
+
+const socket = io({
+  auth: { name }
+})
+
+socket.onAny((event, ...args) => {
+  console.log("%c" + event, "color: yellow;", args)
+})
 
 function App() {
-  const [socket, setSocket] = useState()
   const [room, setRoom] = useState()
 
+  const joinRoom = (room) => {
+    socket.emit("joinRoom", room)
+  }
+
   useEffect(() => {
-    if (room) {
-      const socket = io({
-        auth: { name },
-        query: { room }
-      })
-      socket.onAny((event, ...args) => {
-        console.log("%c" + event, "color: yellow;", args)
-      })
-      setSocket(socket)
+    const join = (val) => {
+      setRoom(val)
     }
+    socket.on("joinRoom", join)
     return () => {
-      if (socket) {
-        socket.close()
-      }
+      socket.off("joinRoom", join)
     }
-  }, [room])
+  }, [socket])
 
   const disconnect = () => {
-    socket.close()
+    socket.emit("leaveRoom", room)
     setRoom(undefined)
-    setSocket(undefined)
   }
 
   return (
     <div>
       <div>your name: {name}</div>
+      {/* <button onClick={() => socket.emit("getRooms")}>update rooms</button> */}
+
       {!room && (
         <>
-          <button onClick={() => setRoom("a")}>join room A</button>
-          <button onClick={() => setRoom("b")}>join room B</button>
+          <button onClick={() => joinRoom("a")}>join room A</button>
+          <button onClick={() => joinRoom("b")}>join room B</button>
         </>
       )}
       {room && <div>your room: {room}</div>}
       <hr />
-      {room && socket && (
+      {room && (
         <div>
           <button onClick={disconnect}>disconnect</button>
-          <Chat socket={socket} />
+          <Chat />
         </div>
       )}
     </div>
   )
 }
 
-const Chat = ({ socket }) => {
+const Chat = () => {
   const inputRef = React.useRef()
 
   const submitForm = (e) => {
@@ -68,7 +71,7 @@ const Chat = ({ socket }) => {
 
   useEffect(() => {
     const getChat = (val) => setChat(val)
-
+    socket.emit("getChat")
     socket.on("getChat", getChat)
     return () => {
       socket.off("getChat", getChat)

@@ -36,23 +36,38 @@ const store = {}
 const io = new WebsocketServer(server)
 io.on("connection", (socket) => {
   const { name } = socket.handshake.auth
-  const { room } = socket.handshake.query
-  console.log(`${name} connected room: ${room}!`)
 
-  socket.join(room)
+  let _room
 
-  // init room storage
-  store[room] = store[room] || []
-  const roomData = store[room]
+  // socket.on("getRooms", () => {
+  //   socket.emit("rooms", io.sockets.adapter.rooms)
+  // })
 
-  io.to(room).emit("getChat", roomData)
+  socket.on("joinRoom", (room) => {
+    console.log(`${name} connected room: ${room}!`)
+    socket.join(room)
+    _room = room
+    store[room] = store[room] || []
+    io.to(room).emit("joinRoom", room)
+  })
+
+  socket.on("leaveRoom", (value) => {
+    socket.leave(value)
+    _room = undefined
+    console.log(`${name} leaving room ${value}`)
+  })
+
+  socket.on("getChat", () => {
+    io.to(_room).emit("getChat", store[_room])
+  })
 
   socket.on("addChat", (value) => {
-    roomData.push({ id: Math.random(), name, value })
-    io.to(room).emit("getChat", roomData)
+    store[_room].push({ id: Math.random(), name, value })
+    io.to(_room).emit("getChat", store[_room])
   })
+
   socket.on("disconnect", () => {
-    console.log(`${name} disconnecting from room ${room}`)
+    console.log(`${name} disconnected!`)
   })
 })
 
