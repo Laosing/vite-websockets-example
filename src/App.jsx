@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react"
 import "./App.css"
 import { io } from "socket.io-client"
 
+function deserialize(serializedJavascript) {
+  return eval("(" + serializedJavascript + ")")
+}
+
 const name = "drew" || window.prompt() || "anonymous"
 
 const socket = io({
@@ -23,6 +27,8 @@ function App() {
     const join = (val) => {
       setRoom(val)
     }
+    const getRooms = (val) => console.log({ val })
+    socket.on("getRooms", getRooms)
     socket.on("joinRoom", join)
     return () => {
       socket.off("joinRoom", join)
@@ -37,7 +43,7 @@ function App() {
   return (
     <div>
       <div>your name: {name}</div>
-      {/* <button onClick={() => socket.emit("getRooms")}>update rooms</button> */}
+      <button onClick={() => socket.emit("getRooms")}>update rooms</button>
 
       {!room && (
         <>

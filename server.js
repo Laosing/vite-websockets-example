@@ -5,6 +5,7 @@ import { createServer as createViteServer } from "vite"
 import { fileURLToPath } from "url"
 import http from "http"
 import { Server as WebsocketServer } from "socket.io"
+import serializeJavascript from "serialize-javascript"
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -59,6 +60,14 @@ io.on("connection", (socket) => {
 
   socket.on("getChat", () => {
     io.to(_room).emit("getChat", store[_room])
+  })
+
+  socket.on("getRooms", async () => {
+    const clients = Array.from(io.sockets.adapter.sids.keys())
+    const rooms = Array.from(io.sockets.adapter.rooms.keys()).filter(
+      (id) => !clients.includes(id)
+    )
+    io.to(_room).emit("getRooms", rooms)
   })
 
   socket.on("addChat", (value) => {
